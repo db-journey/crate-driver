@@ -9,7 +9,7 @@ limitation of Crate. So handle situations with failed migrations with care!
 ## Usage
 
 ```bash
-migrate -url http://host:port -path ./db/migrations create add_field_to_table
-migrate -url http://host:port -path ./db/migrations up
-migrate help # for more info
+journey -url http://host:port -path ./db/migrations create add_field_to_table
+journey -url http://host:port -path ./db/migrations up
+journey help # for more info
 ```
