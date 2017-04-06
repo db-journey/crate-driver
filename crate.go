@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/db-journey/migrate/direction"
 	"github.com/db-journey/migrate/driver"
 	"github.com/db-journey/migrate/file"
-	"github.com/db-journey/migrate/direction"
 	_ "github.com/herenow/go-crate"
 )
 
@@ -19,6 +19,9 @@ func init() {
 type Driver struct {
 	db *sql.DB
 }
+
+// make sure our driver still implements the driver.Driver interface
+var _ driver.Driver = (*Driver)(nil)
 
 const tableName = "schema_migrations"
 
@@ -115,6 +118,12 @@ func (driver *Driver) Migrate(f file.File, pipe chan interface{}) {
 			return
 		}
 	}
+}
+
+// Execute a statement
+func (driver *Driver) Execute(statement string) error {
+	_, err := driver.db.Exec(statement)
+	return err
 }
 
 func splitContent(content string) []string {
