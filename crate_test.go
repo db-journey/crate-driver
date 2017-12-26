@@ -5,9 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/db-journey/migrate/file"
 	"github.com/db-journey/migrate/direction"
-	pipep "github.com/db-journey/migrate/pipe"
+	"github.com/db-journey/migrate/file"
 )
 
 func TestContentSplit(t *testing.T) {
@@ -88,19 +87,15 @@ func TestMigrate(t *testing.T) {
 	}
 
 	for _, file := range successFiles {
-		pipe := pipep.New()
-		go driver.Migrate(file, pipe)
-		errs := pipep.ReadErrors(pipe)
-		if len(errs) > 0 {
-			t.Fatal(errs)
+		err := driver.Migrate(file)
+		if err != nil {
+			t.Fatal(err)
 		}
 	}
 
 	for _, file := range failFiles {
-		pipe := pipep.New()
-		go driver.Migrate(file, pipe)
-		errs := pipep.ReadErrors(pipe)
-		if len(errs) == 0 {
+		err := driver.Migrate(file)
+		if err == nil {
 			t.Fatal("Migration should have failed but succeeded")
 		}
 	}

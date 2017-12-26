@@ -54,6 +54,11 @@ func (driver *Driver) FilenameExtension() string {
 	return "sql"
 }
 
+func (driver *Driver) FileTemplate() []byte {
+	// TODO ?
+	return []byte("")
+}
+
 // Version returns the current migration version.
 func (driver *Driver) Version() (file.Version, error) {
 	var version file.Version
@@ -89,35 +94,29 @@ func (driver *Driver) Versions() (file.Versions, error) {
 	return versions, err
 }
 
-func (driver *Driver) Migrate(f file.File, pipe chan interface{}) {
-	defer close(pipe)
-	pipe <- f
-
+func (driver *Driver) Migrate(f file.File) error {
 	if err := f.ReadContent(); err != nil {
-		pipe <- err
-		return
+		return err
 	}
 
 	lines := splitContent(string(f.Content))
 	for _, line := range lines {
 		_, err := driver.db.Exec(line)
 		if err != nil {
-			pipe <- err
-			return
+			return err
 		}
 	}
 
 	if f.Direction == direction.Up {
 		if _, err := driver.db.Exec("INSERT INTO "+tableName+" (version) VALUES (?)", f.Version); err != nil {
-			pipe <- err
-			return
+			return err
 		}
 	} else if f.Direction == direction.Down {
 		if _, err := driver.db.Exec("DELETE FROM "+tableName+" WHERE version=?", f.Version); err != nil {
-			pipe <- err
-			return
+			return err
 		}
 	}
+	return nil
 }
 
 // Execute a statement
