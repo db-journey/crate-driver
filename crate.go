@@ -12,14 +12,8 @@ import (
 	_ "github.com/herenow/go-crate"
 )
 
-type factory struct{}
-
-func (f factory) New(url string) (driver.Driver, error) {
-	return Open(url)
-}
-
 func init() {
-	driver.Register("crate", "sql", nil, factory{})
+	driver.Register("crate", "sql", nil, Open)
 }
 
 type Driver struct {
