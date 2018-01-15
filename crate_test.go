@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/db-journey/migrate/direction"
+	"github.com/db-journey/migrate/driver"
 	"github.com/db-journey/migrate/file"
 )
 
@@ -39,9 +40,9 @@ func TestMigrate(t *testing.T) {
 
 	url := fmt.Sprintf("crate://%s:%s", host, port)
 
-	driver := &Driver{}
-
-	if err := driver.Initialize(url); err != nil {
+	var err error
+	var driver driver.Driver
+	if driver, err = Open(url); err != nil {
 		t.Fatal(err)
 	}
 

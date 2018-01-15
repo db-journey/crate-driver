@@ -12,35 +12,39 @@ import (
 	_ "github.com/herenow/go-crate"
 )
 
+type factory struct{}
+
+func (f factory) New(url string) (driver.Driver, error) {
+	return Open(url)
+}
+
 func init() {
-	driver.RegisterDriver("crate", &Driver{})
+	driver.Register("crate", "sql", nil, factory{})
 }
 
 type Driver struct {
 	db *sql.DB
 }
 
-// make sure our driver still implements the driver.Driver interface
-var _ driver.Driver = (*Driver)(nil)
-
 const tableName = "schema_migrations"
 
-func (driver *Driver) Initialize(url string) error {
+func Open(url string) (driver.Driver, error) {
+	driver := &Driver{}
 	url = strings.Replace(url, "crate", "http", 1)
 	db, err := sql.Open("crate", url)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := db.Ping(); err != nil {
-		return err
+		return nil, err
 	}
 	driver.db = db
 
 	if err := driver.ensureVersionTableExists(); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return driver, nil
 }
 
 func (driver *Driver) Close() error {
@@ -48,15 +52,6 @@ func (driver *Driver) Close() error {
 		return err
 	}
 	return nil
-}
-
-func (driver *Driver) FilenameExtension() string {
-	return "sql"
-}
-
-func (driver *Driver) FileTemplate() []byte {
-	// TODO ?
-	return []byte("")
 }
 
 // Version returns the current migration version.
