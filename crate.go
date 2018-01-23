@@ -13,34 +13,32 @@ import (
 )
 
 func init() {
-	driver.RegisterDriver("crate", &Driver{})
+	driver.Register("crate", "sql", nil, Open)
 }
 
 type Driver struct {
 	db *sql.DB
 }
 
-// make sure our driver still implements the driver.Driver interface
-var _ driver.Driver = (*Driver)(nil)
-
 const tableName = "schema_migrations"
 
-func (driver *Driver) Initialize(url string) error {
+func Open(url string) (driver.Driver, error) {
+	driver := &Driver{}
 	url = strings.Replace(url, "crate", "http", 1)
 	db, err := sql.Open("crate", url)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := db.Ping(); err != nil {
-		return err
+		return nil, err
 	}
 	driver.db = db
 
 	if err := driver.ensureVersionTableExists(); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return driver, nil
 }
 
 func (driver *Driver) Close() error {
@@ -48,10 +46,6 @@ func (driver *Driver) Close() error {
 		return err
 	}
 	return nil
-}
-
-func (driver *Driver) FilenameExtension() string {
-	return "sql"
 }
 
 // Version returns the current migration version.
@@ -89,35 +83,29 @@ func (driver *Driver) Versions() (file.Versions, error) {
 	return versions, err
 }
 
-func (driver *Driver) Migrate(f file.File, pipe chan interface{}) {
-	defer close(pipe)
-	pipe <- f
-
+func (driver *Driver) Migrate(f file.File) error {
 	if err := f.ReadContent(); err != nil {
-		pipe <- err
-		return
+		return err
 	}
 
 	lines := splitContent(string(f.Content))
 	for _, line := range lines {
 		_, err := driver.db.Exec(line)
 		if err != nil {
-			pipe <- err
-			return
+			return err
 		}
 	}
 
 	if f.Direction == direction.Up {
 		if _, err := driver.db.Exec("INSERT INTO "+tableName+" (version) VALUES (?)", f.Version); err != nil {
-			pipe <- err
-			return
+			return err
 		}
 	} else if f.Direction == direction.Down {
 		if _, err := driver.db.Exec("DELETE FROM "+tableName+" WHERE version=?", f.Version); err != nil {
-			pipe <- err
-			return
+			return err
 		}
 	}
+	return nil
 }
 
 // Execute a statement
